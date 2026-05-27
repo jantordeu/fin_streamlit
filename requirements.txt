@@ -1,0 +1,4 @@
+streamlit~=1.57.0
+yfinance~=1.4.0
+pandas~=3.0.3
+tqdm~=4.67.3
