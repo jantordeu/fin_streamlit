@@ -217,7 +217,7 @@ tickers = list(dict.fromkeys(
 st.sidebar.caption(f"{len(tickers)} valeur(s) unique(s)")
 
 refresh = st.sidebar.button(
-    "🔄 Rafraîchir les données", use_container_width=True, type="primary"
+    "🔄 Rafraîchir les données", width="stretch", type="primary"
 )
 
 st.sidebar.divider()
@@ -310,7 +310,7 @@ st.subheader(f"Résultats ({len(filtered)} valeur(s) après filtres)")
 
 st.dataframe(
     filtered,
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     column_config={
         "Prix": st.column_config.NumberColumn(format="$%.2f"),
@@ -350,7 +350,7 @@ if not chart_data.empty:
         )
         .interactive()
     )
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, width="stretch")
 
 # ============================================================
 #  ERREURS DE RÉCUPÉRATION
