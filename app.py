@@ -44,8 +44,6 @@ KEY_MAP = {
     "debt_eq": "Debt/Eq",
     "roe": "ROE",
     "price": "Price",
-    "52w_high": "52W Range To",
-    "52w_low": "52W Range From",
     "target_price": "Target Price",
     "optionable": "Optionable",
 }
@@ -114,6 +112,31 @@ def fetch_single(ticker: str, retries: int = 3):
                 time.sleep(5 * (attempt + 1))
             else:
                 return None, f"Échec définitif pour {ticker} : {e}"
+
+
+def parse_52w_range(fundament: dict):
+    """
+    Extrait (low, high) du 52W Range, sans dépendre de la façon dont
+    finvizfinance a découpé le champ.
+
+    finvizfinance tente de splitter le texte brut Finviz (ex: "150.00 - 300.00")
+    en deux clés "52W Range From" / "52W Range To". Si le format affiché par
+    Finviz change (espaces, tiret différent), ce découpage échoue silencieusement
+    et toute la chaîne brute se retrouve sous la clé "52W Range" — d'où ce
+    parsing de secours, plus tolérant.
+    """
+    high = clean_float(get_metric(fundament, "52W Range To"))
+    low = clean_float(get_metric(fundament, "52W Range From"))
+    if high is not None and low is not None:
+        return low, high
+
+    raw_range = get_metric(fundament, "52W Range")
+    if raw_range:
+        match = re.search(r'([\d.,]+)\s*[-–—]\s*([\d.,]+)', str(raw_range))
+        if match:
+            return clean_float(match.group(1)), clean_float(match.group(2))
+
+    return None, None
 
 
 def fetch_put_call_oi_ratio(ticker: str, retries: int = 2):
@@ -247,7 +270,7 @@ def analyze_ticker(ticker: str, _cache_buster: int):
     debt_eq = clean_float(gm("debt_eq"))
     roe = clean_float(gm("roe"))
     price = clean_float(gm("price"))
-    high_52w = clean_float(gm("52w_high"))
+    low_52w, high_52w = parse_52w_range(fundament)
     target_price = clean_float(gm("target_price"))
 
     dist_52w_high = None
@@ -292,6 +315,7 @@ def analyze_ticker(ticker: str, _cache_buster: int):
         "Debt/Eq": debt_eq,
         "RSI (14)": rsi,
         "Dist. 52W High (%)": dist_52w_high,
+        "52W Low": low_52w,
         "Put/Call OI": pc_ratio,
         "OI Calls": oi_calls,
         "OI Puts": oi_puts,
@@ -444,6 +468,7 @@ st.dataframe(
         "Debt/Eq": st.column_config.NumberColumn(format="%.2f"),
         "RSI (14)": st.column_config.NumberColumn(format="%.1f"),
         "Dist. 52W High (%)": st.column_config.NumberColumn(format="%.1f%%"),
+        "52W Low": st.column_config.NumberColumn(format="$%.2f"),
         "Put/Call OI": st.column_config.NumberColumn(format="%.2f"),
         "OI Calls": st.column_config.NumberColumn(format="%d"),
         "OI Puts": st.column_config.NumberColumn(format="%d"),
